@@ -22,7 +22,6 @@ import java.util.UUID;
  * - Persist telemetry to the database
  * - Publish TelemetryRecorded domain events
  * 
- * Requirements: 1.3, 1.4, 5.1, 5.2, 5.3, 7.2
  */
 @Service
 @RequiredArgsConstructor
