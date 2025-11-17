@@ -41,3 +41,5 @@ server:
 telemetry:
   kafka:
     topic: telemetry.recorded
+    partitions: 3
+    replication-factor: 1

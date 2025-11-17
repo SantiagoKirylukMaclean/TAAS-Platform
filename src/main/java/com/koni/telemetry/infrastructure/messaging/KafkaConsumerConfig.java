@@ -21,12 +21,12 @@ import java.util.Map;
  * 
  * Configuration features:
  * - JSON deserialization for event payloads
- * - Manual acknowledgment mode for offset control
- * - Auto-offset-reset to earliest for reliability
- * - Trusted packages configuration for JSON deserialization
+ * - Manual offset commit for at-least-once processing
+ * - Auto-offset-reset to earliest for consuming from beginning
+ * - Trusted packages configured for JSON deserialization
  */
-@Configuration
 @EnableKafka
+@Configuration
 public class KafkaConsumerConfig {
     
     @Value("${spring.kafka.bootstrap-servers}")
@@ -40,7 +40,7 @@ public class KafkaConsumerConfig {
     
     /**
      * Creates a ConsumerFactory for TelemetryRecorded events.
-     * Configures JSON deserialization and consumer settings.
+     * Configures JSON deserialization and manual offset commit.
      */
     @Bean
     public ConsumerFactory<String, TelemetryRecorded> consumerFactory() {
@@ -49,12 +49,12 @@ public class KafkaConsumerConfig {
         // Bootstrap servers
         configProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         
-        // Consumer group
+        // Consumer group configuration
         configProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         
         // Offset management
         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
-        configProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // Manual commit
+        configProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         
         // Deserializers
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
@@ -65,25 +65,20 @@ public class KafkaConsumerConfig {
         configProps.put(JsonDeserializer.VALUE_DEFAULT_TYPE, TelemetryRecorded.class.getName());
         configProps.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         
-        return new DefaultKafkaConsumerFactory<>(
-                configProps,
-                new StringDeserializer(),
-                new JsonDeserializer<>(TelemetryRecorded.class, false)
-        );
+        return new DefaultKafkaConsumerFactory<>(configProps);
     }
     
     /**
-     * Creates a KafkaListenerContainerFactory with manual acknowledgment mode.
-     * This allows the consumer to manually commit offsets after successful processing.
+     * Creates a KafkaListenerContainerFactory for consuming TelemetryRecorded events.
+     * Configures manual acknowledgment mode for at-least-once processing.
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> factory =
+        ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> factory = 
                 new ConcurrentKafkaListenerContainerFactory<>();
-        
         factory.setConsumerFactory(consumerFactory());
         
-        // Enable manual acknowledgment mode for offset control
+        // Enable manual acknowledgment for at-least-once processing
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
         
         return factory;
