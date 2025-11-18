@@ -1,7 +1,7 @@
 # TAAS - Telemetry as a Service
 
 A production-ready telemetry ingestion system for temperature measurements from IoT devices. The system implements CQRS (Command Query Responsibility Segregation) and Hexagonal Architecture patterns to handle high-throughput streaming data with eventual consistency guarantees.
-
+More information about the challenge [here](https://www.notion.so/IFCO-Tracking-as-a-Service-Backend-Code-Challenge-1abb6d121289808c9af8eed6a8c8c4ba)
 ## Overview
 
 This system solves the challenge of ingesting, processing, and querying temperature telemetry data from multiple devices while handling:
