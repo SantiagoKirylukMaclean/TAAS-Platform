@@ -5,6 +5,7 @@ import com.koni.telemetry.domain.event.TelemetryRecorded;
 import com.koni.telemetry.domain.exception.ValidationException;
 import com.koni.telemetry.domain.model.Telemetry;
 import com.koni.telemetry.domain.repository.TelemetryRepository;
+import com.koni.telemetry.infrastructure.observability.TelemetryMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,11 +37,21 @@ class RecordTelemetryCommandHandlerTest {
     @Mock
     private EventPublisher eventPublisher;
     
+    @Mock
+    private TelemetryMetrics telemetryMetrics;
+    
     private RecordTelemetryCommandHandler handler;
     
     @BeforeEach
     void setUp() {
-        handler = new RecordTelemetryCommandHandler(telemetryRepository, eventPublisher);
+        // Mock the recordProcessingTime to execute the operation immediately
+        doAnswer(invocation -> {
+            Runnable operation = invocation.getArgument(0);
+            operation.run();
+            return null;
+        }).when(telemetryMetrics).recordProcessingTime(any(Runnable.class));
+        
+        handler = new RecordTelemetryCommandHandler(telemetryRepository, eventPublisher, telemetryMetrics);
     }
     
     @Test
@@ -73,6 +85,10 @@ class RecordTelemetryCommandHandlerTest {
         assertThat(publishedEvent.getDate()).isEqualTo(date);
         assertThat(publishedEvent.getEventId()).isNotNull();
         assertThat(publishedEvent.getRecordedAt()).isNotNull();
+        
+        // Verify metrics were recorded
+        verify(telemetryMetrics).recordTelemetryReceived();
+        verify(telemetryMetrics).recordProcessingTime(any(Runnable.class));
     }
     
     @Test
@@ -145,5 +161,9 @@ class RecordTelemetryCommandHandlerTest {
         // Then
         verify(telemetryRepository, never()).save(any());
         verify(eventPublisher, never()).publish(any());
+        
+        // Verify duplicate metric was recorded
+        verify(telemetryMetrics).recordDuplicate();
+        verify(telemetryMetrics).recordTelemetryReceived();
     }
 }

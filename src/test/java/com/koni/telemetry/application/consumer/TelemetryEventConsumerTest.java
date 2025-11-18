@@ -3,6 +3,7 @@ package com.koni.telemetry.application.consumer;
 import com.koni.telemetry.domain.event.TelemetryRecorded;
 import com.koni.telemetry.domain.model.DeviceProjection;
 import com.koni.telemetry.domain.repository.DeviceProjectionRepository;
+import com.koni.telemetry.infrastructure.observability.TelemetryMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,11 +36,21 @@ class TelemetryEventConsumerTest {
     @Mock
     private Acknowledgment acknowledgment;
     
+    @Mock
+    private TelemetryMetrics telemetryMetrics;
+    
     private TelemetryEventConsumer consumer;
     
     @BeforeEach
     void setUp() {
-        consumer = new TelemetryEventConsumer(deviceProjectionRepository);
+        // Mock the recordProcessingTime to execute the operation immediately
+        doAnswer(invocation -> {
+            Runnable operation = invocation.getArgument(0);
+            operation.run();
+            return null;
+        }).when(telemetryMetrics).recordProcessingTime(any(Runnable.class));
+        
+        consumer = new TelemetryEventConsumer(deviceProjectionRepository, telemetryMetrics);
     }
     
     @Test
@@ -113,6 +124,9 @@ class TelemetryEventConsumerTest {
         
         // But offset should still be acknowledged
         verify(acknowledgment).acknowledge();
+        
+        // Verify out-of-order metric was recorded
+        verify(telemetryMetrics).recordOutOfOrder();
     }
     
     @Test
