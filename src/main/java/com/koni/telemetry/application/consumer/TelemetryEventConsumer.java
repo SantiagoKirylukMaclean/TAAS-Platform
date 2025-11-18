@@ -4,6 +4,7 @@ import com.koni.telemetry.domain.event.TelemetryRecorded;
 import com.koni.telemetry.domain.model.DeviceProjection;
 import com.koni.telemetry.domain.repository.DeviceProjectionRepository;
 import com.koni.telemetry.infrastructure.observability.TelemetryMetrics;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -54,6 +55,7 @@ public class TelemetryEventConsumer {
             containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional
+    @Observed(name = "kafka.consumer", contextualName = "telemetry-event-consumer")
     public void consume(TelemetryRecorded event, Acknowledgment acknowledgment) {
         log.debug("Received TelemetryRecorded event: {}", event);
         

@@ -3,6 +3,7 @@ package com.koni.telemetry.infrastructure.persistence.repository;
 import com.koni.telemetry.domain.model.DeviceProjection;
 import com.koni.telemetry.domain.repository.DeviceProjectionRepository;
 import com.koni.telemetry.infrastructure.persistence.entity.DeviceProjectionEntity;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,7 @@ public class JpaDeviceProjectionRepositoryAdapter implements DeviceProjectionRep
      * @throws IllegalArgumentException if deviceId is null
      */
     @Override
+    @Observed(name = "repository.findByDeviceId", contextualName = "device-projection-find")
     public Optional<DeviceProjection> findByDeviceId(Long deviceId) {
         if (deviceId == null) {
             throw new IllegalArgumentException("DeviceId cannot be null");
@@ -50,6 +52,7 @@ public class JpaDeviceProjectionRepositoryAdapter implements DeviceProjectionRep
      * @throws IllegalArgumentException if projection is null
      */
     @Override
+    @Observed(name = "repository.save", contextualName = "device-projection-save")
     public void save(DeviceProjection projection) {
         if (projection == null) {
             throw new IllegalArgumentException("DeviceProjection cannot be null");
@@ -66,6 +69,7 @@ public class JpaDeviceProjectionRepositoryAdapter implements DeviceProjectionRep
      * @return a list of all DeviceProjection entities, or an empty list if none exist
      */
     @Override
+    @Observed(name = "repository.findAll", contextualName = "device-projection-findAll")
     public List<DeviceProjection> findAll() {
         return jpaRepository.findAll().stream()
             .map(this::toDomain)

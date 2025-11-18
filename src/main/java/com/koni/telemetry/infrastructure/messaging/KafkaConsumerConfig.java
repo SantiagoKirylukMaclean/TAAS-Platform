@@ -1,6 +1,8 @@
 package com.koni.telemetry.infrastructure.messaging;
 
+import brave.Tracer;
 import com.koni.telemetry.domain.event.TelemetryRecorded;
+import com.koni.telemetry.infrastructure.tracing.TracingConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,16 +72,20 @@ public class KafkaConsumerConfig {
     
     /**
      * Creates a KafkaListenerContainerFactory for consuming TelemetryRecorded events.
-     * Configures manual acknowledgment mode for at-least-once processing.
+     * Configures manual acknowledgment mode for at-least-once processing and adds
+     * tracing interceptor for distributed tracing support.
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> kafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> kafkaListenerContainerFactory(Tracer tracer) {
         ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> factory = 
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         
         // Enable manual acknowledgment for at-least-once processing
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL);
+        
+        // Add tracing interceptor to extract and continue trace context from Kafka headers
+        factory.setRecordInterceptor(new TracingConsumerInterceptor<>(tracer));
         
         return factory;
     }

@@ -3,6 +3,7 @@ package com.koni.telemetry.infrastructure.persistence.repository;
 import com.koni.telemetry.domain.model.Telemetry;
 import com.koni.telemetry.domain.repository.TelemetryRepository;
 import com.koni.telemetry.infrastructure.persistence.entity.TelemetryEntity;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,7 @@ public class JpaTelemetryRepositoryAdapter implements TelemetryRepository {
      * @throws IllegalArgumentException if telemetry is null
      */
     @Override
+    @Observed(name = "repository.save", contextualName = "telemetry-save")
     public void save(Telemetry telemetry) {
         if (telemetry == null) {
             throw new IllegalArgumentException("Telemetry cannot be null");
@@ -48,6 +50,7 @@ public class JpaTelemetryRepositoryAdapter implements TelemetryRepository {
      * @throws IllegalArgumentException if deviceId or date is null
      */
     @Override
+    @Observed(name = "repository.exists", contextualName = "telemetry-exists")
     public boolean exists(Long deviceId, Instant date) {
         if (deviceId == null) {
             throw new IllegalArgumentException("DeviceId cannot be null");
