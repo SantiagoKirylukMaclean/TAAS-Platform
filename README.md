@@ -61,6 +61,8 @@ docker compose down
 
 ## Features
 
+### Core Features
+
 - ✅ **Idempotent telemetry ingestion** - Duplicate submissions handled gracefully
 - ✅ **Out-of-order event handling** - Projection always reflects latest by timestamp
 - ✅ **CQRS pattern** - Separate read/write models for optimal performance
@@ -71,6 +73,16 @@ docker compose down
 - ✅ **Manual offset commit** - At-least-once processing guarantee
 - ✅ **Partition by device** - Ordering guarantee per device in Kafka
 - ✅ **Comprehensive test coverage** - Unit and integration tests with TestContainers
+
+### Production Features
+
+- ✅ **Observability & Metrics** - Prometheus + Grafana dashboards for monitoring
+- ✅ **Distributed Tracing** - End-to-end request tracing with Zipkin
+- ✅ **Circuit Breaker** - Resilience against Kafka failures with automatic fallback
+- ✅ **Dead Letter Queue** - Error recovery and message replay for failed processing
+- ✅ **Health Checks** - Liveness and readiness probes for Kubernetes
+
+**📖 See [README-PRODUCTION.md](README-PRODUCTION.md) for detailed production features documentation**
 
 ## Technology Stack
 
@@ -96,47 +108,61 @@ docker compose down
 ┌─────────────┐
 │   Client    │
 └──────┬──────┘
-       │ HTTP POST /api/v1/telemetry
+       │ HTTP POST /api/v1/telemetry [traceId: abc123]
        ▼
-┌─────────────────────────────────────────────────────────┐
-│                    REST API Layer                       │
-│  ┌────────────────────────────────────────────────┐     │
-│  │         TelemetryController                    │     │
-│  └────────────────┬───────────────────────────────┘     │
-└───────────────────┼─────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    REST API Layer                           │
+│  ┌────────────────────────────────────────────────────┐     │
+│  │         TelemetryController                        │     │
+│  │         [Span: http-post]                          │     │
+│  └────────────────┬───────────────────────────────────┘     │
+└───────────────────┼─────────────────────────────────────────┘
                     │
                     ▼
-┌─────────────────────────────────────────────────────────┐
-│              Application Layer (CQRS)                   │
-│  ┌──────────────────────┐  ┌──────────────────────┐     │
-│  │ RecordTelemetry      │  │ GetDevices           │     │
-│  │ CommandHandler       │  │ QueryHandler         │     │
-│  └──────────┬───────────┘  └──────────┬───────────┘     │
-└─────────────┼─────────────────────────┼────────────────┘
-              │                         │
-              ▼                         ▼
-┌─────────────────────────┐   ┌──────────────────────┐
-│   Domain Layer          │   │   Domain Layer       │
-│  ┌──────────────────┐   │   │  ┌────────────────┐  │
-│  │ Telemetry        │   │   │  │DeviceProjection│  │
-│  │ TelemetryRecorded│   │   │  └────────────────┘  │
-│  └──────────────────┘   │   └──────────────────────┘
-└───────────┬─────────────┘
-            │
-            ▼
-┌─────────────────────────────────────────────────────────┐
-│           Infrastructure Layer                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
-│  │ PostgreSQL   │  │    Kafka     │  │  Kafka       │   │
-│  │ (Write DB)   │  │  (Producer)  │  │ (Consumer)   │   │
-│  └──────────────┘  └──────┬───────┘  └──────┬───────┘   │
-└────────────────────────────┼─────────────────┼──────────┘
+┌─────────────────────────────────────────────────────────────┐
+│              Application Layer (CQRS)                       │
+│  ┌──────────────────────┐  ┌──────────────────────┐        │
+│  │ RecordTelemetry      │  │ GetDevices           │        │
+│  │ CommandHandler       │  │ QueryHandler         │        │
+│  │ [Span: command]      │  │ [Span: query]        │        │
+│  └──────────┬───────────┘  └──────────────────────┘        │
+└─────────────┼──────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────┐
+│           Infrastructure Layer                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ PostgreSQL   │  │    Kafka     │  │  Kafka       │      │
+│  │ [Span: db]   │  │ [CircuitBrkr]│  │ Consumer     │      │
+│  └──────────────┘  └──────┬───────┘  └──────┬───────┘      │
+└────────────────────────────┼─────────────────┼──────────────┘
                              │                 │
                              ▼                 ▼
                     ┌─────────────────┐  ┌──────────────┐
                     │ Kafka Topic     │  │ PostgreSQL   │
-                    │telemetry.record │  │ (Read DB)    │
-                    └─────────────────┘  └──────────────┘
+                    │telemetry.record │  │ [Span: db]   │
+                    └────────┬────────┘  └──────────────┘
+                             │
+                             ├─ Success → Consumer
+                             │
+                             └─ Failure (3 retries) → DLQ
+                                         ┌──────────────────┐
+                                         │ telemetry.       │
+                                         │ recorded.dlq     │
+                                         └──────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                 Observability Stack                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Actuator    │  │  Prometheus  │  │   Grafana    │      │
+│  │  :8080       │→ │  :9090       │→ │   :3000      │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                                              │
+│  ┌──────────────┐                                           │
+│  │   Zipkin     │  ← Traces from all components            │
+│  │   :9411      │                                           │
+│  └──────────────┘                                           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Data Flow
@@ -820,23 +846,64 @@ This is a development/demo implementation. For production, consider:
 4. **Out-of-Order Events**: Timestamp comparison in the consumer is straightforward but requires careful testing
 5. **Kafka Partitioning**: Using deviceId as partition key ensures ordering while maintaining scalability
 
+## Production Features
+
+This system includes enterprise-grade production features:
+
+### Observability & Monitoring
+- **Metrics:** Custom application metrics + JVM/HTTP/Kafka metrics
+- **Prometheus:** Time-series metrics storage and querying
+- **Grafana:** Pre-configured dashboards for visualization
+- **Actuator:** Health checks, metrics endpoints, circuit breaker status
+
+### Distributed Tracing
+- **Zipkin:** End-to-end request tracing across all components
+- **Trace Propagation:** Automatic trace context propagation through HTTP and Kafka
+- **Correlation IDs:** Trace IDs in all log messages for debugging
+
+### Resilience Patterns
+- **Circuit Breaker:** Protects against Kafka failures with automatic fallback
+- **Fallback Repository:** Stores events when circuit is open for later replay
+- **Dead Letter Queue:** Failed messages sent to DLQ after retries for investigation
+
+### Error Recovery
+- **Exponential Backoff:** Retry failed messages with increasing delays (1s, 2s, 4s)
+- **DLQ Management:** Admin endpoints to view and reprocess failed messages
+- **Automatic Replay:** Replay fallback events when services recover
+
+### Health & Readiness
+- **Health Checks:** PostgreSQL and Kafka connectivity checks
+- **Liveness Probe:** Kubernetes liveness endpoint
+- **Readiness Probe:** Kubernetes readiness endpoint
+
+**📖 For detailed documentation, see:**
+- [README-PRODUCTION.md](README-PRODUCTION.md) - Production features overview
+- [docs/observability.md](docs/observability.md) - Metrics and monitoring
+- [docs/distributed-tracing.md](docs/distributed-tracing.md) - Distributed tracing
+- [docs/circuit-breaker.md](docs/circuit-breaker.md) - Circuit breaker pattern
+- [docs/dead-letter-queue.md](docs/dead-letter-queue.md) - DLQ and error recovery
+
+**🎬 Demo Scripts:**
+```bash
+./demo-observability.sh    # Metrics and Grafana
+./demo-tracing.sh          # Distributed tracing
+./demo-circuit-breaker.sh  # Circuit breaker and fallback
+./demo-dlq.sh              # Dead Letter Queue
+./demo-all.sh              # Run all demos
+```
+
 ## Future Enhancements
 
-Potential improvements for production deployment:
+Potential improvements for future releases:
 
-- [ ] Add Spring Boot Actuator for health checks and metrics
-- [ ] Implement distributed tracing (Zipkin/Jaeger)
 - [ ] Add caching layer (Redis) for frequently accessed projections
 - [ ] Implement API versioning
 - [ ] Add rate limiting and throttling
-- [ ] Implement dead letter queue for failed events
 - [ ] Add support for multiple event types
-- [ ] Implement event replay capability
 - [ ] Add GraphQL API alongside REST
 - [ ] Implement WebSocket for real-time updates
 - [ ] Add Kubernetes deployment manifests
-- [ ] Implement circuit breaker pattern (Resilience4j)
-- [ ] Add comprehensive monitoring dashboards
+- [ ] Implement authentication and authorization
 
 ## License
 

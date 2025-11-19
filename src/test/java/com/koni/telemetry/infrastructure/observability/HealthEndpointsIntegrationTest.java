@@ -25,7 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - /actuator/health/liveness - Kubernetes liveness probe
  * - /actuator/health/readiness - Kubernetes readiness probe
  * 
- * Requirements: 11.4, 11.5
  */
 @SpringBootTest
 @AutoConfigureMockMvc

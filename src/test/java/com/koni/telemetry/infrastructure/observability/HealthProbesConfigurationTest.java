@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - Readiness probe endpoint is configured
  * - Health endpoint beans are properly initialized
  * 
- * Requirements: 11.4, 11.5
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
