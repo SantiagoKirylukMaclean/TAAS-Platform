@@ -17,6 +17,11 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
   
+  sql:
+    init:
+      mode: always
+      continue-on-error: false
+  
   kafka:
     bootstrap-servers: localhost:9092
     producer:
