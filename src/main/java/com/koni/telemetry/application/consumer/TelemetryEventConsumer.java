@@ -59,9 +59,9 @@ public class TelemetryEventConsumer {
     public void consume(TelemetryRecorded event, Acknowledgment acknowledgment) {
         log.debug("Received TelemetryRecorded event: {}", event);
         
-        try {
-            // Record processing time for the entire consumer operation
-            telemetryMetrics.recordProcessingTime(() -> {
+        // Record processing time for the entire consumer operation
+        telemetryMetrics.recordProcessingTime(() -> {
+            try {
                 // Retrieve existing DeviceProjection by deviceId (Requirement 3.1)
                 Optional<DeviceProjection> existingProjection = 
                         deviceProjectionRepository.findByDeviceId(event.getDeviceId());
@@ -97,12 +97,20 @@ public class TelemetryEventConsumer {
                 
                 // Commit Kafka offset manually after successful processing (Requirement 3.5)
                 acknowledgment.acknowledge();
-            });
-            
-        } catch (Exception e) {
-            log.error("Error processing TelemetryRecorded event: {}", event, e);
-            // Don't acknowledge - let Kafka retry
-            throw e;
-        }
+                
+            } catch (Exception e) {
+                // Log error with trace ID (Requirement 9.5)
+                // Trace ID is automatically included in log pattern via MDC
+                log.error("Error processing TelemetryRecorded event: deviceId={}, eventId={}, error={}", 
+                        event.getDeviceId(), 
+                        event.getEventId(),
+                        e.getMessage(), 
+                        e);
+                
+                // Don't acknowledge - let exception propagate to DefaultErrorHandler
+                // DefaultErrorHandler will handle retries and DLQ (Requirement 9.5)
+                throw e;
+            }
+        });
     }
 }

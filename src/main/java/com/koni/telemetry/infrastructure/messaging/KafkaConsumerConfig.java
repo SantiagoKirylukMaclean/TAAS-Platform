@@ -76,7 +76,9 @@ public class KafkaConsumerConfig {
      * tracing interceptor for distributed tracing support.
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> kafkaListenerContainerFactory(Tracer tracer) {
+    public ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> kafkaListenerContainerFactory(
+            Tracer tracer,
+            org.springframework.kafka.listener.CommonErrorHandler errorHandler) {
         ConcurrentKafkaListenerContainerFactory<String, TelemetryRecorded> factory = 
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
@@ -86,6 +88,9 @@ public class KafkaConsumerConfig {
         
         // Add tracing interceptor to extract and continue trace context from Kafka headers
         factory.setRecordInterceptor(new TracingConsumerInterceptor<>(tracer));
+        
+        // Set error handler with DLQ support
+        factory.setCommonErrorHandler(errorHandler);
         
         return factory;
     }

@@ -19,6 +19,8 @@ public class TelemetryMetrics {
     private final Counter telemetryReceived;
     private final Counter duplicatesDetected;
     private final Counter outOfOrderEvents;
+    private final Counter dlqMessagesSent;
+    private final Counter dlqMessagesReprocessed;
     private final Timer processingTime;
 
     public TelemetryMetrics(MeterRegistry registry) {
@@ -33,6 +35,14 @@ public class TelemetryMetrics {
 
         this.outOfOrderEvents = Counter.builder("telemetry.out_of_order.total")
                 .description("Total out-of-order events detected")
+                .register(registry);
+
+        this.dlqMessagesSent = Counter.builder("telemetry.dlq.sent.total")
+                .description("Total messages sent to Dead Letter Queue")
+                .register(registry);
+
+        this.dlqMessagesReprocessed = Counter.builder("telemetry.dlq.reprocessed.total")
+                .description("Total messages reprocessed from Dead Letter Queue")
                 .register(registry);
 
         this.processingTime = Timer.builder("telemetry.processing.time")
@@ -83,5 +93,21 @@ public class TelemetryMetrics {
      */
     public void recordProcessingTime(Runnable operation) {
         processingTime.record(operation);
+    }
+
+    /**
+     * Increment the counter for messages sent to Dead Letter Queue.
+     */
+    public void recordDlqMessageSent() {
+        dlqMessagesSent.increment();
+        log.debug("DLQ message sent counter incremented");
+    }
+
+    /**
+     * Increment the counter for messages reprocessed from Dead Letter Queue.
+     */
+    public void recordDlqMessageReprocessed() {
+        dlqMessagesReprocessed.increment();
+        log.debug("DLQ message reprocessed counter incremented");
     }
 }
