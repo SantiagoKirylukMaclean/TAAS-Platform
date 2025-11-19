@@ -164,9 +164,10 @@ Execute these requests in order:
 6. Wait 15 seconds
 7. Check "Circuit Breaker State" → Should be `CLOSED`
 
-**Or use the demo script:**
+**Or use the demo scripts:**
 ```bash
-./demo-circuit-breaker.sh
+./demo-circuit-breaker.sh         # Detailed version (~3 min)
+./demo-circuit-breaker-quick.sh   # Fast version (~2 min)
 ```
 
 ### 6. Test Dead Letter Queue
