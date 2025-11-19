@@ -273,7 +273,7 @@ docker exec -it $(docker ps -q -f name=kafka) kafka-console-consumer \
 
 ## License
 
-This project is an implementation of TAAS (Telemetry as a Service) for the IFCO Backend Code Challenge.
+This project is an implementation of TAAS (Telemetry as a Service) for the Backend Code Challenge.
 
 ---
 

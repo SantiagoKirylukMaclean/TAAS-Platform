@@ -6,6 +6,8 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Duration;
@@ -16,13 +18,22 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Unit tests for CircuitBreakerConfiguration.
  * Verifies that circuit breaker beans are created with correct settings.
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestPropertySource(properties = {
     "spring.kafka.bootstrap-servers=localhost:9092",
     "spring.datasource.url=jdbc:h2:mem:testdb",
-    "spring.datasource.driver-class-name=org.h2.Driver"
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.sql.init.mode=never",
+    "spring.kafka.consumer.auto-startup=false",
+    "spring.kafka.producer.bootstrap-servers=localhost:9092"
 })
 class CircuitBreakerConfigurationTest {
+    
+    @MockBean
+    private KafkaTemplate<?, ?> kafkaTemplate;
     
     @Autowired
     private CircuitBreakerConfig kafkaCircuitBreakerConfig;

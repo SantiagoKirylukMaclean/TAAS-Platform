@@ -52,4 +52,39 @@ dependencies {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	maxParallelForks = 1
+	testLogging {
+		events("passed", "skipped", "failed")
+		showStandardStreams = false
+	}
+}
+
+// Task for unit tests only (fast)
+tasks.register<Test>("unitTest") {
+	description = "Run unit tests only"
+	group = "verification"
+	useJUnitPlatform {
+		includeTags("unit")
+	}
+	shouldRunAfter(tasks.test)
+}
+
+// Task for integration tests only (with Testcontainers)
+tasks.register<Test>("integrationTest") {
+	description = "Run integration tests only"
+	group = "verification"
+	useJUnitPlatform {
+		includeTags("integration")
+	}
+	shouldRunAfter(tasks.named("unitTest"))
+}
+
+// Task for end-to-end tests only
+tasks.register<Test>("e2eTest") {
+	description = "Run end-to-end tests only"
+	group = "verification"
+	useJUnitPlatform {
+		includeTags("e2e")
+	}
+	shouldRunAfter(tasks.named("integrationTest"))
 }

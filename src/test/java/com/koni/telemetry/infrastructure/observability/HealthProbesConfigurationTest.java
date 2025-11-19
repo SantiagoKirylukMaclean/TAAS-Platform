@@ -4,9 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.ApplicationContext;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.TestPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,12 +26,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestPropertySource(properties = {
     "spring.datasource.url=jdbc:h2:mem:testdb",
     "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
     "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.sql.init.mode=never",
     "spring.kafka.bootstrap-servers=localhost:9092",
+    "spring.kafka.consumer.auto-startup=false",
     "management.health.kafka.enabled=false",
     "management.health.db.enabled=false"
 })
 class HealthProbesConfigurationTest {
+    
+    @MockBean
+    private KafkaTemplate<?, ?> kafkaTemplate;
 
     @Autowired
     private ApplicationContext applicationContext;
