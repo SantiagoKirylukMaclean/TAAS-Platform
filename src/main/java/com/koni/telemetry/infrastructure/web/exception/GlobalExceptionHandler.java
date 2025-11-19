@@ -16,9 +16,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * Global exception handler for REST API endpoints.
  * Provides consistent error responses and appropriate HTTP status codes.
+ * Only applies to controllers in the com.koni.telemetry.infrastructure.web.controller package.
  * 
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.koni.telemetry.infrastructure.web.controller")
 public class GlobalExceptionHandler {
     
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
