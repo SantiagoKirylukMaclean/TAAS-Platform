@@ -25,7 +25,6 @@ import java.util.Map;
  * - Configures KafkaTemplate with tracing interceptor for trace propagation
  * - Enables end-to-end tracing from HTTP requests through Kafka messaging
  * 
- * Requirements: 4.2, 4.3
  */
 @Slf4j
 @Configuration

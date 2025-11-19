@@ -66,6 +66,22 @@ management:
     tracing:
       endpoint: http://localhost:9411/api/v2/spans
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      kafka:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - org.apache.kafka.common.errors.TimeoutException
+          - org.springframework.kafka.KafkaException
+        register-health-indicator: true
+        event-consumer-buffer-size: 10
+
 telemetry:
   kafka:
     topic: telemetry.recorded

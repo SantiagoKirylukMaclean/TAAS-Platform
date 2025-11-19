@@ -34,7 +34,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - GET /api/v1/devices with existing data
  * - GET /api/v1/devices with empty result
  * 
- * Requirements: 11.5
  */
 @SpringBootTest
 @AutoConfigureMockMvc

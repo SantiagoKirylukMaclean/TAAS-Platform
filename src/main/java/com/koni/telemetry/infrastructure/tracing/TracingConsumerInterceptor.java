@@ -19,7 +19,6 @@ import org.springframework.kafka.listener.RecordInterceptor;
  * This implementation uses Spring Kafka's RecordInterceptor interface, which is called
  * before each record is processed by the listener, allowing us to set up trace context.
  * 
- * Requirements: 4.2, 5.5
  */
 @Slf4j
 @RequiredArgsConstructor

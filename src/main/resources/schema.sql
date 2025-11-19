@@ -23,3 +23,16 @@ CREATE TABLE IF NOT EXISTS device_projection (
 
 -- Index for sorting by latest date
 CREATE INDEX IF NOT EXISTS idx_device_projection_date ON device_projection(latest_date DESC);
+
+-- Fallback Events table (Circuit Breaker Fallback)
+-- Stores events that failed to publish to Kafka when circuit breaker is open
+CREATE TABLE IF NOT EXISTS fallback_events (
+    event_id UUID PRIMARY KEY,
+    device_id BIGINT NOT NULL,
+    measurement DECIMAL(10, 2) NOT NULL,
+    date TIMESTAMP NOT NULL,
+    failed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index for sorting by failure time (for replay ordering)
+CREATE INDEX IF NOT EXISTS idx_fallback_events_failed_at ON fallback_events(failed_at DESC);
