@@ -1,0 +1,703 @@
+{
+  "info": {
+    "name": "Telemetry API - TAAS",
+    "description": "Complete API collection for the Telemetry as a Service (TAAS) system. Includes telemetry endpoints, health checks, metrics, circuit breaker, DLQ management, and observability features.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Telemetry Endpoints",
+      "item": [
+        {
+          "name": "Record Telemetry - Device 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 1,\n  \"measurement\": 23.5,\n  \"date\": \"2025-01-31T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Submit temperature measurement from device 1"
+          }
+        },
+        {
+          "name": "Record Telemetry - Device 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 2,\n  \"measurement\": 18.2,\n  \"date\": \"2025-01-31T10:05:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Submit temperature measurement from device 2"
+          }
+        },
+        {
+          "name": "Get All Devices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "devices"]
+            },
+            "description": "Retrieve all devices with their latest temperature measurement"
+          }
+        },
+        {
+          "name": "Record Telemetry - Random Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": {{$randomInt}},\n  \"measurement\": {{$randomInt}},\n  \"date\": \"{{$isoTimestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Generate random telemetry for load testing"
+          }
+        }
+      ],
+      "description": "Core telemetry ingestion and query endpoints"
+    },
+    {
+      "name": "Edge Cases Testing",
+      "item": [
+        {
+          "name": "Test Duplicate Telemetry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 99,\n  \"measurement\": 25.0,\n  \"date\": \"2025-01-31T12:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Send duplicate telemetry to test idempotency. Run this request twice with the same data."
+          }
+        },
+        {
+          "name": "Test Out-of-Order - Newer First",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 100,\n  \"measurement\": 30.0,\n  \"date\": \"2025-01-31T14:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Send newer telemetry first (step 1 of 2)"
+          }
+        },
+        {
+          "name": "Test Out-of-Order - Older Second",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 100,\n  \"measurement\": 28.0,\n  \"date\": \"2025-01-31T13:55:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Send older telemetry - should not update projection (step 2 of 2)"
+          }
+        },
+        {
+          "name": "Invalid - Missing deviceId",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"measurement\": 25.0,\n  \"date\": \"2025-01-31T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Should return 400 Bad Request"
+          }
+        },
+        {
+          "name": "Invalid - Missing measurement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 1,\n  \"date\": \"2025-01-31T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Should return 400 Bad Request"
+          }
+        },
+        {
+          "name": "Invalid - Future date",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 1,\n  \"measurement\": 25.0,\n  \"date\": \"2099-12-31T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            },
+            "description": "Should return 400 Bad Request - date cannot be in the future"
+          }
+        }
+      ],
+      "description": "Test edge cases: duplicates, out-of-order events, and validation errors"
+    },
+    {
+      "name": "Health & Metrics",
+      "item": [
+        {
+          "name": "Health Check - Overall",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Overall health status including all dependencies"
+          }
+        },
+        {
+          "name": "Health Check - Liveness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/liveness",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health", "liveness"]
+            },
+            "description": "Kubernetes liveness probe"
+          }
+        },
+        {
+          "name": "Health Check - Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/readiness",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health", "readiness"]
+            },
+            "description": "Kubernetes readiness probe"
+          }
+        },
+        {
+          "name": "List All Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics"]
+            },
+            "description": "List all available metrics"
+          }
+        },
+        {
+          "name": "Metric - Telemetry Received",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/telemetry.received.total",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "telemetry.received.total"]
+            },
+            "description": "Total telemetry messages received"
+          }
+        },
+        {
+          "name": "Metric - Duplicates Detected",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/telemetry.duplicates.total",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "telemetry.duplicates.total"]
+            },
+            "description": "Total duplicate messages detected"
+          }
+        },
+        {
+          "name": "Metric - Out-of-Order Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/telemetry.out_of_order.total",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "telemetry.out_of_order.total"]
+            },
+            "description": "Total out-of-order events detected"
+          }
+        },
+        {
+          "name": "Metric - Processing Time",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/telemetry.processing.time",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "telemetry.processing.time"]
+            },
+            "description": "Processing time with percentiles (P50, P95, P99)"
+          }
+        },
+        {
+          "name": "Metric - HTTP Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/http.server.requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "http.server.requests"]
+            },
+            "description": "HTTP server request metrics"
+          }
+        },
+        {
+          "name": "Metric - JVM Memory",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/jvm.memory.used",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "jvm.memory.used"]
+            },
+            "description": "JVM memory usage"
+          }
+        },
+        {
+          "name": "Prometheus Metrics (All)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/plain"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "prometheus"]
+            },
+            "description": "All metrics in Prometheus exposition format"
+          }
+        }
+      ],
+      "description": "Health checks and metrics endpoints for monitoring"
+    },
+    {
+      "name": "Circuit Breaker",
+      "item": [
+        {
+          "name": "Circuit Breaker State",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/circuitbreakers",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "circuitbreakers"]
+            },
+            "description": "Current state of all circuit breakers (CLOSED, OPEN, HALF_OPEN)"
+          }
+        },
+        {
+          "name": "Circuit Breaker Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/circuitbreakerevents",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "circuitbreakerevents"]
+            },
+            "description": "Recent circuit breaker events (state transitions, failures)"
+          }
+        },
+        {
+          "name": "Circuit Breaker Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics/resilience4j.circuitbreaker.state",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics", "resilience4j.circuitbreaker.state"]
+            },
+            "description": "Circuit breaker state metrics"
+          }
+        }
+      ],
+      "description": "Circuit breaker monitoring and state"
+    },
+    {
+      "name": "Admin - DLQ Management",
+      "item": [
+        {
+          "name": "List DLQ Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq"]
+            },
+            "description": "List all messages in the Dead Letter Queue"
+          }
+        },
+        {
+          "name": "Reprocess DLQ Messages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/dlq/reprocess",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "dlq", "reprocess"]
+            },
+            "description": "Reprocess all messages from the DLQ"
+          }
+        }
+      ],
+      "description": "Dead Letter Queue management endpoints"
+    },
+    {
+      "name": "Admin - Fallback Events",
+      "item": [
+        {
+          "name": "Replay Fallback Events",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/fallback/replay",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "fallback", "replay"]
+            },
+            "description": "Replay events stored in fallback repository (when circuit breaker was open)"
+          }
+        }
+      ],
+      "description": "Fallback event management (circuit breaker recovery)"
+    },
+    {
+      "name": "Challenge Example Sequence",
+      "item": [
+        {
+          "name": "1. Device 1 - 10°C at 13:00:00",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 1,\n  \"measurement\": 10,\n  \"date\": \"2025-01-31T13:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            }
+          }
+        },
+        {
+          "name": "2. Device 2 - 8°C at 13:00:01",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 2,\n  \"measurement\": 8,\n  \"date\": \"2025-01-31T13:00:01Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            }
+          }
+        },
+        {
+          "name": "3. Device 1 - 12°C at 13:00:05",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 1,\n  \"measurement\": 12,\n  \"date\": \"2025-01-31T13:00:05Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            }
+          }
+        },
+        {
+          "name": "4. Device 2 - 19°C at 13:00:06",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 2,\n  \"measurement\": 19,\n  \"date\": \"2025-01-31T13:00:06Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            }
+          }
+        },
+        {
+          "name": "5. Device 2 - 10°C at 13:00:11",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": 2,\n  \"measurement\": 10,\n  \"date\": \"2025-01-31T13:00:11Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "telemetry"]
+            }
+          }
+        },
+        {
+          "name": "6. Get Devices - Expected Result",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "devices"]
+            },
+            "description": "Expected: Device 1 with 12°C, Device 2 with 10°C"
+          }
+        }
+      ],
+      "description": "Exact sequence from the challenge document"
+    }
+  ]
+}

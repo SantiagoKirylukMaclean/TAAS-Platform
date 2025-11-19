@@ -29,6 +29,15 @@ The production enhancements add four key capabilities to the telemetry system:
 
 These features follow industry best practices for production-ready distributed systems and are fully demonstrable locally.
 
+## API Testing
+
+For easy testing of all endpoints, use the provided request collections:
+
+- **`api-requests.http`** - For IntelliJ IDEA or VS Code REST Client
+- **`Telemetry-API.postman_collection.json`** - For Postman
+
+See [API-TESTING.md](API-TESTING.md) for complete testing guide.
+
 ## Quick Start
 
 ### 1. Start All Services

@@ -192,6 +192,15 @@ docker compose down
 3. GetDevicesQueryHandler queries `device_projection` table
 4. Returns list of devices with their latest temperature
 
+## API Testing
+
+For easy API testing, we provide ready-to-use request collections:
+
+- **`api-requests.http`** - HTTP file for IntelliJ IDEA and VS Code REST Client
+- **`Telemetry-API.postman_collection.json`** - Postman collection (importable)
+
+See [API-TESTING.md](API-TESTING.md) for detailed instructions on using these files.
+
 ## API Endpoints
 
 ### 1. Record Telemetry (Command)

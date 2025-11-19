@@ -1,0 +1,334 @@
+### Telemetry API - HTTP Requests Collection
+### This file can be used with IntelliJ IDEA HTTP Client, VS Code REST Client extension, or imported to Postman
+### Base URL: http://localhost:8080
+
+@baseUrl = http://localhost:8080
+@contentType = application/json
+
+###############################################################################
+# TELEMETRY ENDPOINTS
+###############################################################################
+
+### 1. Record Telemetry - Device 1
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 1,
+  "measurement": 23.5,
+  "date": "2025-01-31T10:00:00Z"
+}
+
+### 2. Record Telemetry - Device 2
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 2,
+  "measurement": 18.2,
+  "date": "2025-01-31T10:05:00Z"
+}
+
+### 3. Record Telemetry - Multiple devices (batch simulation)
+# Device 1 - First measurement
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 1,
+  "measurement": 10.0,
+  "date": "2025-01-31T13:00:00Z"
+}
+
+###
+# Device 2 - First measurement
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 2,
+  "measurement": 8.0,
+  "date": "2025-01-31T13:00:01Z"
+}
+
+###
+# Device 1 - Second measurement (newer)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 1,
+  "measurement": 12.0,
+  "date": "2025-01-31T13:00:05Z"
+}
+
+###
+# Device 2 - Second measurement
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 2,
+  "measurement": 19.0,
+  "date": "2025-01-31T13:00:06Z"
+}
+
+###
+# Device 2 - Third measurement (latest)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 2,
+  "measurement": 10.0,
+  "date": "2025-01-31T13:00:11Z"
+}
+
+### 4. Get All Devices with Latest Temperature
+GET {{baseUrl}}/api/v1/devices
+Accept: {{contentType}}
+
+###############################################################################
+# EDGE CASES - TESTING
+###############################################################################
+
+### 5. Test Duplicate Telemetry (Idempotency)
+# Send the same telemetry twice - should be handled gracefully
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 99,
+  "measurement": 25.0,
+  "date": "2025-01-31T12:00:00Z"
+}
+
+###
+# Duplicate - same deviceId and date
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 99,
+  "measurement": 25.0,
+  "date": "2025-01-31T12:00:00Z"
+}
+
+### 6. Test Out-of-Order Telemetry
+# Send newer telemetry first
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 100,
+  "measurement": 30.0,
+  "date": "2025-01-31T14:00:00Z"
+}
+
+###
+# Then send older telemetry - should not update projection
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 100,
+  "measurement": 28.0,
+  "date": "2025-01-31T13:55:00Z"
+}
+
+###
+# Verify projection shows the newer measurement (30.0)
+GET {{baseUrl}}/api/v1/devices
+Accept: {{contentType}}
+
+### 7. Test Invalid Request - Missing deviceId (400 Bad Request)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "measurement": 25.0,
+  "date": "2025-01-31T10:00:00Z"
+}
+
+### 8. Test Invalid Request - Missing measurement (400 Bad Request)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 1,
+  "date": "2025-01-31T10:00:00Z"
+}
+
+### 9. Test Invalid Request - Missing date (400 Bad Request)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 1,
+  "measurement": 25.0
+}
+
+### 10. Test Invalid Request - Future date (400 Bad Request)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 1,
+  "measurement": 25.0,
+  "date": "2099-12-31T23:59:59Z"
+}
+
+###############################################################################
+# ACTUATOR ENDPOINTS - HEALTH & METRICS
+###############################################################################
+
+### 11. Health Check - Overall Status
+GET {{baseUrl}}/actuator/health
+Accept: {{contentType}}
+
+### 12. Health Check - Liveness Probe (Kubernetes)
+GET {{baseUrl}}/actuator/health/liveness
+Accept: {{contentType}}
+
+### 13. Health Check - Readiness Probe (Kubernetes)
+GET {{baseUrl}}/actuator/health/readiness
+Accept: {{contentType}}
+
+### 14. List All Available Metrics
+GET {{baseUrl}}/actuator/metrics
+Accept: {{contentType}}
+
+### 15. Telemetry Received Total
+GET {{baseUrl}}/actuator/metrics/telemetry.received.total
+Accept: {{contentType}}
+
+### 16. Telemetry Duplicates Total
+GET {{baseUrl}}/actuator/metrics/telemetry.duplicates.total
+Accept: {{contentType}}
+
+### 17. Telemetry Out-of-Order Total
+GET {{baseUrl}}/actuator/metrics/telemetry.out_of_order.total
+Accept: {{contentType}}
+
+### 18. Telemetry Processing Time
+GET {{baseUrl}}/actuator/metrics/telemetry.processing.time
+Accept: {{contentType}}
+
+### 19. HTTP Server Requests
+GET {{baseUrl}}/actuator/metrics/http.server.requests
+Accept: {{contentType}}
+
+### 20. JVM Memory Used
+GET {{baseUrl}}/actuator/metrics/jvm.memory.used
+Accept: {{contentType}}
+
+### 21. Prometheus Metrics (all metrics in Prometheus format)
+GET {{baseUrl}}/actuator/prometheus
+Accept: text/plain
+
+###############################################################################
+# CIRCUIT BREAKER ENDPOINTS
+###############################################################################
+
+### 22. Circuit Breaker State
+GET {{baseUrl}}/actuator/circuitbreakers
+Accept: {{contentType}}
+
+### 23. Circuit Breaker Events
+GET {{baseUrl}}/actuator/circuitbreakerevents
+Accept: {{contentType}}
+
+### 24. Circuit Breaker Metrics
+GET {{baseUrl}}/actuator/metrics/resilience4j.circuitbreaker.state
+Accept: {{contentType}}
+
+###############################################################################
+# ADMIN ENDPOINTS - DEAD LETTER QUEUE
+###############################################################################
+
+### 25. List DLQ Messages
+GET {{baseUrl}}/api/v1/admin/dlq
+Accept: {{contentType}}
+
+### 26. Reprocess DLQ Messages
+POST {{baseUrl}}/api/v1/admin/dlq/reprocess
+Content-Type: {{contentType}}
+
+###############################################################################
+# ADMIN ENDPOINTS - FALLBACK EVENTS
+###############################################################################
+
+### 27. Replay Fallback Events (when circuit breaker was open)
+POST {{baseUrl}}/api/v1/admin/fallback/replay
+Content-Type: {{contentType}}
+
+###############################################################################
+# LOAD TESTING - GENERATE MULTIPLE REQUESTS
+###############################################################################
+
+### 28. Generate Load - Device 1 (run multiple times)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 1,
+  "measurement": {{$random.integer(15, 35)}},
+  "date": "{{$datetime iso8601}}"
+}
+
+### 29. Generate Load - Device 2 (run multiple times)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": 2,
+  "measurement": {{$random.integer(15, 35)}},
+  "date": "{{$datetime iso8601}}"
+}
+
+### 30. Generate Load - Random Device (run multiple times)
+POST {{baseUrl}}/api/v1/telemetry
+Content-Type: {{contentType}}
+
+{
+  "deviceId": {{$random.integer(1, 10)}},
+  "measurement": {{$random.integer(10, 40)}},
+  "date": "{{$datetime iso8601}}"
+}
+
+###############################################################################
+# OBSERVABILITY STACK URLS (Open in browser)
+###############################################################################
+
+### Grafana Dashboard
+# URL: http://localhost:3000
+# Username: admin
+# Password: admin
+
+### Prometheus UI
+# URL: http://localhost:9090
+
+### Zipkin Tracing UI
+# URL: http://localhost:9411
+
+###############################################################################
+# USEFUL PROMETHEUS QUERIES (Use in Prometheus UI)
+###############################################################################
+
+# Telemetry ingestion rate (per second)
+# rate(telemetry_received_total[1m])
+
+# Duplicate detection rate
+# rate(telemetry_duplicates_total[1m])
+
+# Out-of-order events
+# rate(telemetry_out_of_order_total[1m])
+
+# HTTP request latency (95th percentile)
+# histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[1m]))
+
+# Circuit breaker state (0=CLOSED, 1=OPEN, 2=HALF_OPEN)
+# resilience4j_circuitbreaker_state{name="kafka"}
+
+# JVM memory usage
+# jvm_memory_used_bytes{area="heap"}
