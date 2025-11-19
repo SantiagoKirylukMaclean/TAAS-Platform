@@ -41,10 +41,8 @@ public class CircuitBreakerConfiguration {
             .waitDurationInOpenState(Duration.ofSeconds(10))
             .permittedNumberOfCallsInHalfOpenState(3)
             .automaticTransitionFromOpenToHalfOpenEnabled(true)
-            .recordExceptions(
-                org.apache.kafka.common.errors.TimeoutException.class,
-                org.springframework.kafka.KafkaException.class
-            )
+            // Record all exceptions as failures (default behavior)
+            // This allows the circuit breaker to count any RuntimeException as a failure
             .build();
     }
     

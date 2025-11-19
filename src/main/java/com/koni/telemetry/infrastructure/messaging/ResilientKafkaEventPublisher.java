@@ -6,6 +6,8 @@ import com.koni.telemetry.domain.repository.FallbackEventRepository;
 import com.koni.telemetry.infrastructure.persistence.entity.FallbackEventEntity;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.micrometer.tracing.annotation.ContinueSpan;
+import io.micrometer.tracing.annotation.SpanTag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
@@ -66,7 +68,8 @@ public class ResilientKafkaEventPublisher implements EventPublisher {
      * @throws IllegalArgumentException if event is null
      */
     @Override
-    public void publish(TelemetryRecorded event) {
+    @ContinueSpan(log = "kafka-publish")
+    public void publish(@SpanTag("deviceId") TelemetryRecorded event) {
         if (event == null) {
             throw new IllegalArgumentException("Event cannot be null");
         }
@@ -76,8 +79,15 @@ public class ResilientKafkaEventPublisher implements EventPublisher {
         
         // Wrap Kafka publish operation with circuit breaker
         Supplier<Void> kafkaPublishSupplier = () -> {
-            publishToKafka(event);
-            return null;
+            try {
+                publishToKafka(event);
+                return null;
+            } catch (Exception e) {
+                // Re-throw as RuntimeException so circuit breaker can record it
+                log.error("Kafka publish failed, circuit breaker will record this failure: deviceId={}, eventId={}", 
+                        event.getDeviceId(), event.getEventId(), e);
+                throw new RuntimeException("Kafka publish failed", e);
+            }
         };
         
         try {
@@ -97,9 +107,9 @@ public class ResilientKafkaEventPublisher implements EventPublisher {
             handleFallback(event);
             
         } catch (Exception e) {
-            // Kafka publish failed - use fallback
-            log.error("Failed to publish event to Kafka, using fallback: deviceId={}, eventId={}", 
-                    event.getDeviceId(), event.getEventId(), e);
+            // Kafka publish failed - circuit breaker has recorded the failure, now use fallback
+            log.warn("Kafka publish failed (circuit breaker recorded), using fallback: deviceId={}, eventId={}", 
+                    event.getDeviceId(), event.getEventId());
             handleFallback(event);
         }
     }

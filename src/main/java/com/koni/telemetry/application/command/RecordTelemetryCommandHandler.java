@@ -6,6 +6,8 @@ import com.koni.telemetry.domain.model.Telemetry;
 import com.koni.telemetry.domain.repository.TelemetryRepository;
 import com.koni.telemetry.infrastructure.observability.TelemetryMetrics;
 import io.micrometer.observation.annotation.Observed;
+import io.micrometer.tracing.annotation.NewSpan;
+import io.micrometer.tracing.annotation.SpanTag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -42,8 +44,8 @@ public class RecordTelemetryCommandHandler {
      * @throws com.koni.telemetry.domain.exception.ValidationException if validation fails
      */
     @Transactional
-    @Observed(name = "command.handler", contextualName = "record-telemetry")
-    public void handle(RecordTelemetryCommand command) {
+    @NewSpan("RecordTelemetryCommandHandler.handle")
+    public void handle(@SpanTag("deviceId") RecordTelemetryCommand command) {
         log.debug("Handling RecordTelemetryCommand: deviceId={}, measurement={}, date={}", 
                 command.getDeviceId(), command.getMeasurement(), command.getDate());
         
